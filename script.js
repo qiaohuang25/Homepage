@@ -154,9 +154,8 @@
   }
 
   // Publication-style renderer for sheets that list books / articles.
-  // Shows Year, Authors, and a "place" label (Publisher for books,
-  // Venue for journal articles) -- each with an explicit label so the
-  // field names are always visible on the page.
+  // Shows Year, Authors, and a "place" (Publisher for books, Venue for
+  // journal articles) joined with " · ", WITHOUT field-name labels.
   function renderPublication(rows, placeLabel) {
     if (!rows.length) {
       return `<p class="meta">No entries yet.</p>`;
@@ -166,10 +165,7 @@
         const title = r.Link
           ? `<a href="${escapeHtml(r.Link)}" target="_blank" rel="noopener">${escapeHtml(r.Title || "Untitled")}</a>`
           : escapeHtml(r.Title || "Untitled");
-        const parts = [];
-        if (r.Year) parts.push(`<strong>Year:</strong> ${escapeHtml(r.Year)}`);
-        if (r.Authors) parts.push(`<strong>Authors:</strong> ${escapeHtml(r.Authors)}`);
-        if (r[placeLabel]) parts.push(`<strong>${escapeHtml(placeLabel)}:</strong> ${escapeHtml(r[placeLabel])}`);
+        const parts = [r.Year, r.Authors, r[placeLabel]].filter(Boolean).map(escapeHtml);
         return `<div class="item">
             <h3>${title}</h3>
             ${parts.length ? `<p class="meta">${parts.join(" &middot; ")}</p>` : ""}
