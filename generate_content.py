@@ -61,6 +61,18 @@ news = [
     ["2025-11", "Presented at the Annual Meeting of the Linguistics Society."],
 ]
 
+# ---- Any extra sheet becomes its own section automatically. ------------
+# This is just a DEMO. Add/remove/rename sheets freely in Excel; each non-
+# Profile sheet shows up as a tab + section with no code changes.
+# Generic columns understood: Title, Name, Date, Year, Description, Text.
+teaching_header = ["Course", "Term", "Role", "Description"]
+teaching = [
+    ["Introduction to Linguistics", "Fall 2025", "Teaching Assistant",
+     "Led discussion sections and graded assignments for 120 undergraduates."],
+    ["Semantics Seminar", "Spring 2025", "Guest Lecturer",
+     "Delivered two lectures on minimalist semantics and polysemy."],
+]
+
 
 def style_sheet(ws, header_row=None):
     if header_row:
@@ -99,6 +111,13 @@ style_sheet(ws, 1)
 ws = wb.create_sheet("News")
 ws.append(news_header)
 for row in news:
+    ws.append(row)
+style_sheet(ws, 1)
+
+# Teaching sheet (demo extra section -> auto-rendered)
+ws = wb.create_sheet("Teaching")
+ws.append(teaching_header)
+for row in teaching:
     ws.append(row)
 style_sheet(ws, 1)
 

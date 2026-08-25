@@ -41,3 +41,18 @@
 - `content.xlsx`、照片（`photo.svg` / `photo.jpg`）、PDF（`CV.pdf`）等必须和 `index.html` 一起提交到仓库根目录。
 - 改完 Excel 内容后，只要 `git push`，网站就会自动更新。
 - 本地预览请用 HTTP 服务（见 README），直接双击 `index.html` 会因浏览器安全策略无法读取 xlsx。
+
+## 修改已上线的内容
+
+**不需要删除任何文件。** 直接在本地编辑 `content.xlsx`（或替换照片 / CV.pdf），然后像首次推送一样提交并 `push` 即可，工作流会自动重新部署：
+
+```bash
+cd /Users/joseph/WorkBuddy/2026-08-25-18-41-01/academic-homepage
+
+# 只改了 Excel 就只加它；若也换了照片 / CV，把它们一起 add
+git add content.xlsx
+git commit -m "Update content"
+git push
+```
+
+推送后回到仓库的 `Actions` 标签页，等 `Deploy static content to Pages` 变绿，刷新网页即可看到更新。脚本对 xlsx 已设置不缓存，正常刷新就行；若仍显示旧内容，强制刷新（Cmd/Ctrl+Shift+R）。

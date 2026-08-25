@@ -29,9 +29,8 @@
       <aside class="sidebar">
         <nav class="tabs" id="tabs" aria-label="sections">
           <a href="#about" class="tab active" data-target="about">About</a>
-          <a href="#research" class="tab" data-target="research">Research</a>
-          <a href="#publications" class="tab" data-target="publications">Publications</a>
-          <a href="#news" class="tab" data-target="news">News</a>
+          <!-- Data sections (Research / Publications / News / any extra sheet) are injected here -->
+          <span id="dataTabs"></span>
           <a href="#contact" class="tab" data-target="contact">Contact</a>
         </nav>
       </aside>
@@ -55,23 +54,8 @@
           <p id="bio" class="bio"></p>
         </section>
 
-        <!-- Research -->
-        <section id="research" class="card section" hidden>
-          <h2 class="section-title">Research</h2>
-          <div id="researchList" class="stack"></div>
-        </section>
-
-        <!-- Publications -->
-        <section id="publications" class="card section" hidden>
-          <h2 class="section-title">Publications</h2>
-          <div id="pubList" class="stack"></div>
-        </section>
-
-        <!-- News -->
-        <section id="news" class="card section" hidden>
-          <h2 class="section-title">News</h2>
-          <div id="newsList" class="stack"></div>
-        </section>
+        <!-- Data sections (Research / Publications / News / extra sheets) are injected here -->
+        <div id="dataSections"></div>
 
         <!-- Contact -->
         <section id="contact" class="card section" hidden>

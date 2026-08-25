@@ -1,6 +1,13 @@
 /* Academic homepage renderer.
  * Reads content.xlsx (same folder) and fills the page.
  * Edit the Excel file to update your site -- no code changes needed.
+ *
+ * How sections work:
+ *   - "Profile" sheet  -> the About + Contact blocks (key/value pairs).
+ *   - Every other sheet -> one section + one tab, in workbook order.
+ *       * "Publications", "Research", "News" use dedicated layouts.
+ *       * Any other sheet (e.g. Teaching, Awards, Projects) is rendered
+ *         generically. Add a sheet in Excel and it appears automatically.
  */
 (function () {
   "use strict";
@@ -27,6 +34,14 @@
       return `<a href="${escapeHtml(v)}" target="_blank" rel="noopener">${escapeHtml(v)}</a>`;
     }
     return escapeHtml(v);
+  }
+
+  function slugify(s) {
+    return String(s || "section")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "section";
   }
 
   // ---- Excel helpers ----------------------------------------------------
@@ -95,12 +110,10 @@
   }
 
   function renderPublications(rows) {
-    const box = document.getElementById("pubList");
     if (!rows.length) {
-      box.innerHTML = `<p class="meta">No publications yet.</p>`;
-      return;
+      return `<p class="meta">No publications yet.</p>`;
     }
-    box.innerHTML = rows
+    return rows
       .map((r) => {
         const title = linkOrText(r.Title) || escapeHtml(r.Title || "Untitled");
         const meta = [r.Year, r.Authors, r.Venue].filter(Boolean).join(" · ");
@@ -113,12 +126,10 @@
   }
 
   function renderResearch(rows) {
-    const box = document.getElementById("researchList");
     if (!rows.length) {
-      box.innerHTML = `<p class="meta">No research entries yet.</p>`;
-      return;
+      return `<p class="meta">No research entries yet.</p>`;
     }
-    box.innerHTML = rows
+    return rows
       .map((r) => {
         return `<div class="item">
             <h3>${escapeHtml(r.Title || "")}</h3>
@@ -129,12 +140,10 @@
   }
 
   function renderNews(rows) {
-    const box = document.getElementById("newsList");
     if (!rows.length) {
-      box.innerHTML = `<p class="meta">No news yet.</p>`;
-      return;
+      return `<p class="meta">No news yet.</p>`;
     }
-    box.innerHTML = rows
+    return rows
       .map(
         (r) => `<div class="news-item">
             <span class="news-date">${escapeHtml(r.Date || "")}</span>
@@ -144,8 +153,37 @@
       .join("");
   }
 
+  // Generic renderer for any extra sheet (Teaching, Awards, Projects, ...).
+  function renderGeneric(rows) {
+    if (!rows.length) {
+      return `<p class="meta">No entries yet.</p>`;
+    }
+    const skip = new Set(["Title", "Name", "Date", "Year", "Description", "Text", "Abstract", "Detail"]);
+    return rows
+      .map((r) => {
+        const title = r.Title || r.Name || "";
+        const date = r.Date || r.Year || "";
+        const desc = r.Description || r.Text || r.Abstract || r.Detail || "";
+        const extras = Object.keys(r)
+          .filter((k) => !skip.has(k) && r[k])
+          .map((k) => [k, r[k]]);
+        return `<div class="item">
+            ${title ? `<h3>${escapeHtml(title)}</h3>` : ""}
+            ${date ? `<p class="meta">${escapeHtml(date)}</p>` : ""}
+            ${desc ? `<p class="desc">${escapeHtml(desc)}</p>` : ""}
+            ${
+              extras.length
+                ? `<p class="meta">${extras
+                    .map(([k, v]) => `<strong>${escapeHtml(k)}:</strong> ${linkOrText(v)}`)
+                    .join(" &middot; ")}</p>`
+                : ""
+            }
+          </div>`;
+      })
+      .join("");
+  }
+
   function renderContact(p) {
-    const box = document.getElementById("contactList");
     const rows = [];
     if (p.email) rows.push(["Email", `<a href="mailto:${escapeHtml(p.email)}">${escapeHtml(p.email)}</a>`]);
     if (p.googleScholar) rows.push(["Google Scholar", linkOrText(p.googleScholar)]);
@@ -153,13 +191,19 @@
     if (p.linkedin) rows.push(["LinkedIn", linkOrText(p.linkedin)]);
     if (p.affiliation) rows.push(["Affiliation", escapeHtml(p.affiliation)]);
     if (!rows.length) {
-      box.innerHTML = `<p class="meta">No contact info provided.</p>`;
-      return;
+      return `<p class="meta">No contact info provided.</p>`;
     }
-    box.innerHTML = rows
+    return rows
       .map(([k, v]) => `<div class="contact-row"><span class="k">${escapeHtml(k)}</span><span class="v">${v}</span></div>`)
       .join("");
   }
+
+  // Dedicated layouts keyed by sheet name; anything else uses renderGeneric.
+  const SPECIAL = {
+    Publications: renderPublications,
+    Research: renderResearch,
+    News: renderNews,
+  };
 
   function reveal() {
     document.querySelectorAll(".section").forEach((s) => (s.hidden = false));
@@ -189,9 +233,47 @@
     }
   }
 
+  // Build a tab + section for every non-profile data sheet.
+  function buildDataSections(wb) {
+    const tabsHost = document.getElementById("dataTabs");
+    const sectionsHost = document.getElementById("dataSections");
+    const dataSheets = wb.SheetNames.filter(
+      (n) => !/^(profile|contact|about)$/i.test(n)
+    );
+
+    dataSheets.forEach((name) => {
+      const id = slugify(name);
+
+      const tab = document.createElement("a");
+      tab.className = "tab";
+      tab.href = "#" + id;
+      tab.dataset.target = id;
+      tab.textContent = name;
+      tabsHost.appendChild(tab);
+
+      const sec = document.createElement("section");
+      sec.id = id;
+      sec.className = "card section";
+      sec.hidden = true;
+
+      const h = document.createElement("h2");
+      h.className = "section-title";
+      h.textContent = name;
+      sec.appendChild(h);
+
+      const box = document.createElement("div");
+      box.className = "stack";
+      const rows = sheetToObjects(wb, name);
+      const renderer = SPECIAL[name] || renderGeneric;
+      box.innerHTML = renderer(rows);
+      sec.appendChild(box);
+
+      sectionsHost.appendChild(sec);
+    });
+  }
+
   // ---- Boot -------------------------------------------------------------
   async function main() {
-    initTabs();
     try {
       const resp = await fetch(CONTENT_FILE, { cache: "no-store" });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -199,15 +281,17 @@
       const wb = XLSX.read(new Uint8Array(buf), { type: "array" });
 
       const profile = sheetToDict(wb, "Profile");
+
+      buildDataSections(wb); // must run before initTabs()
+      initTabs();
+
       renderProfile(profile);
-      renderPublications(sheetToObjects(wb, "Publications"));
-      renderResearch(sheetToObjects(wb, "Research"));
-      renderNews(sheetToObjects(wb, "News"));
-      renderContact(profile);
+      document.getElementById("contactList").innerHTML = renderContact(profile);
       reveal();
     } catch (err) {
       fail(
-        "Could not load " + CONTENT_FILE + ". Serve this folder over HTTP " +
+        "Could not load " + CONTENT_FILE +
+        ". Serve this folder over HTTP " +
         "(e.g. `python -m http.server`) and make sure the file is present. " +
         "Details: " + err.message
       );

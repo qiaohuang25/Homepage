@@ -20,7 +20,7 @@ academic-homepage/
 
 ## 怎么改内容（最重要）
 
-打开 `content.xlsx`，里面有 4 个 sheet：
+打开 `content.xlsx`，里面有这些 sheet：
 
 1. **Profile**（两列 Key / Value）
    - `name` 姓名、`title` 头衔、`affiliation` 单位、`bio` 自我介绍
@@ -34,6 +34,11 @@ academic-homepage/
    - 每个研究方向一行。
 4. **News**（表头 Date / Text）
    - 每条动态一行。
+5. **Teaching**（示例板块）— 演示"加 sheet = 加板块"，可随意删除/改名。
+
+> **板块完全由 Excel 驱动**：除了 `Profile` 之外，工作簿里的**每一个 sheet 都会自动变成一个导航 tab + 一个板块**，
+> 顺序与 Excel 里 sheet 的排列顺序一致。所以加新板块 = 在 Excel 里加一个新 sheet，
+> 完全不用打开或改动 `index.html` / `script.js`。
 
 改完保存，推送即可。想批量生成/重置 xlsx，可运行 `python generate_content.py`
 （需先 `pip install openpyxl`，脚本里的示例数据在文件顶部，改完重跑即可）。
@@ -55,6 +60,8 @@ python -m http.server 8000
 ## 进阶
 
 - 换配色：编辑 `style.css` 顶部的 CSS 变量（`--accent` 等）。
-- 加板块：在 `index.html` 加一个 `<section>`，在 `content.xlsx` 加对应 sheet，
-  再在 `script.js` 里加一个 `renderXxx` 调用即可。
+- **加板块（无需碰代码）**：在 `content.xlsx` 里新建一个 sheet（如 `Awards`、`Projects`、
+  `Teaching`），第一行写表头、下面每行一条内容，保存后推送即可。它会自动出现在导航栏。
+  通用板块推荐的列名：`Title` / `Name`（标题）、`Date` / `Year`（日期）、
+  `Description` / `Text`（正文），其余列会自动以"列名: 内容"形式显示（网址会变成链接）。
 - 想要出版物自动生成 BibTeX / Google Scholar 联动，可考虑 `al-folio` 模板。
