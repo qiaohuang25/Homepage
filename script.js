@@ -206,7 +206,13 @@
   };
 
   function reveal() {
-    document.querySelectorAll(".section").forEach((s) => (s.hidden = false));
+    // Un-hide every section that actually has rendered content; keep empty
+    // (e.g. a leftover static section from an older index.html) hidden.
+    document.querySelectorAll(".section").forEach((s) => {
+      const stack = s.querySelector(".stack");
+      const empty = stack ? stack.children.length === 0 : false;
+      if (!empty) s.hidden = false;
+    });
     if (loadStatus) loadStatus.style.display = "none";
   }
 
@@ -234,22 +240,27 @@
   }
 
   // Build a tab + section for every non-profile data sheet.
+  // Robust: works whether or not #dataTabs / #dataSections exist in the HTML,
+  // by falling back to inserting before the Contact tab/section.
   function buildDataSections(wb) {
-    const tabsHost = document.getElementById("dataTabs");
-    const sectionsHost = document.getElementById("dataSections");
+    const tabsHost = document.getElementById("dataTabs") || document.querySelector("#tabs");
+    const sectionsHost = document.getElementById("dataSections") || document.querySelector(".content");
+    const contactTab = document.querySelector('.tab[data-target="contact"]');
+    const contactSec = document.getElementById("contact");
+
     const dataSheets = wb.SheetNames.filter(
       (n) => !/^(profile|contact|about)$/i.test(n)
     );
 
     dataSheets.forEach((name) => {
       const id = slugify(name);
+      if (document.getElementById(id)) return; // skip if already present
 
       const tab = document.createElement("a");
       tab.className = "tab";
       tab.href = "#" + id;
       tab.dataset.target = id;
       tab.textContent = name;
-      tabsHost.appendChild(tab);
 
       const sec = document.createElement("section");
       sec.id = id;
@@ -268,7 +279,21 @@
       box.innerHTML = renderer(rows);
       sec.appendChild(box);
 
-      sectionsHost.appendChild(sec);
+      // Tab: before the Contact tab if possible, else append to host.
+      if (contactTab && contactTab.parentNode) {
+        contactTab.parentNode.insertBefore(tab, contactTab);
+      } else if (tabsHost) {
+        tabsHost.appendChild(tab);
+      }
+
+      // Section: before the Contact section if possible, else append to host.
+      if (contactSec && contactSec.parentNode) {
+        contactSec.parentNode.insertBefore(sec, contactSec);
+      } else if (sectionsHost) {
+        sectionsHost.appendChild(sec);
+      } else {
+        document.body.appendChild(sec);
+      }
     });
   }
 
@@ -282,7 +307,11 @@
 
       const profile = sheetToDict(wb, "Profile");
 
-      buildDataSections(wb); // must run before initTabs()
+      try {
+        buildDataSections(wb); // must run before initTabs()
+      } catch (e) {
+        console.error("Section building failed:", e);
+      }
       initTabs();
 
       renderProfile(profile);
